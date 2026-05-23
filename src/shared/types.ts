@@ -17,4 +17,9 @@ export interface AppState {
   settings: Settings;
 }
 
+export interface CatAssets {
+  idle: string;
+  attack: string;
+}
+
 export type TodoPatch = Partial<Pick<Todo, "title" | "dueAt" | "completed">>;

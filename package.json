@@ -13,8 +13,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "lint": "eslint .",
     "build": "npm run typecheck && electron-vite build",
-    "dist:mac": "npm run build && electron-builder --mac dmg zip --arm64 --publish never",
-    "dist:mac:x64": "npm run build && electron-builder --mac dmg zip --x64 --publish never"
+    "prepare:dist-assets": "node scripts/prepare-cat-assets.mjs",
+    "dist:mac": "npm run prepare:dist-assets && npm run build && electron-builder --mac dmg zip --arm64 --publish never",
+    "dist:mac:x64": "npm run prepare:dist-assets && npm run build && electron-builder --mac dmg zip --x64 --publish never"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -48,6 +49,15 @@
     "files": [
       "out/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": ".release-assets/cat-assets",
+        "to": "cat-assets",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "mac": {
       "category": "public.app-category.productivity",

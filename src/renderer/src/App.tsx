@@ -12,8 +12,8 @@ import {
   X
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { AppState, Todo } from "../../shared/types";
-import { catIdleDataUrl } from "../../shared/catAssets";
+import type { AppState, CatAssets, Todo } from "../../shared/types";
+import { fallbackCatAssets } from "../../shared/catAssets";
 import { findAlertableTodo, sortTodos } from "./todoLogic";
 
 const reminderPresets = [5, 10, 30, 60];
@@ -97,6 +97,7 @@ function App(): React.ReactElement {
   const [customReminder, setCustomReminder] = useState("10");
   const [alertTodo, setAlertTodo] = useState<AlertTodo | null>(null);
   const [isThrowing, setIsThrowing] = useState(false);
+  const [catAssets, setCatAssets] = useState<CatAssets>(fallbackCatAssets);
 
   const sortedTodos = useMemo(() => sortTodos(state.todos), [state.todos]);
   const activeTodos = sortedTodos.filter((todo) => !todo.completed);
@@ -115,6 +116,7 @@ function App(): React.ReactElement {
       setState(loaded);
       setCustomReminder(String(loaded.settings.reminderLeadMinutes));
     });
+    void window.assetApi.getCatAssets().then(setCatAssets);
 
     const unsubscribeAlertClosed = window.windowApi.onAlertClosed(restoreWidgetCat);
 
@@ -261,7 +263,7 @@ function App(): React.ReactElement {
       </header>
 
       <section className="calendar-band">
-        <img ref={catRef} className={`widget-cat ${isThrowing ? "hidden-during-throw" : ""}`} src={catIdleDataUrl} alt="고양이" />
+        <img ref={catRef} className={`widget-cat ${isThrowing ? "hidden-during-throw" : ""}`} src={catAssets.idle} alt="고양이" />
         <div className="calendar-copy">
           <div>
             <strong>다가오는 todo</strong>

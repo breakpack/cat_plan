@@ -1,10 +1,11 @@
 import { app, BrowserWindow, ipcMain, screen, type Rectangle } from "electron";
+import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
-import { catAttackDataUrl, catIdleDataUrl } from "../shared/catAssets.js";
-import type { AppState, Settings, Todo, TodoPatch } from "../shared/types.js";
+import { fallbackCatAssets } from "../shared/catAssets.js";
+import type { AppState, CatAssets, Settings, Todo, TodoPatch } from "../shared/types.js";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const defaultSettings: Settings = {
@@ -24,6 +25,11 @@ interface CatBounds {
 interface AlertPayload extends Pick<Todo, "title" | "dueAt"> {
   catBounds?: CatBounds;
 }
+
+const catAssetFiles = {
+  idle: "cat01_idle_blink_8fps.gif",
+  attack: "cat01_attack_12fps.gif"
+};
 
 function getStorePath(): string {
   return join(app.getPath("userData"), "todos.json");
@@ -154,6 +160,30 @@ function formatAlertDate(iso: string): string {
   }).format(new Date(iso));
 }
 
+function readGifDataUrl(fileName: string): string | null {
+  const candidates = [
+    join(process.resourcesPath, "cat-assets", fileName),
+    join(app.getAppPath(), "catset_assets", "catset_gifs", "cat01_gifs", fileName)
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      return `data:image/gif;base64,${readFileSync(candidate).toString("base64")}`;
+    } catch {
+      // Try the next candidate. The checked-in fallback handles missing local assets.
+    }
+  }
+
+  return null;
+}
+
+function getCatAssets(): CatAssets {
+  return {
+    idle: readGifDataUrl(catAssetFiles.idle) ?? fallbackCatAssets.idle,
+    attack: readGifDataUrl(catAssetFiles.attack) ?? fallbackCatAssets.attack
+  };
+}
+
 function resolveCatBounds(catBounds: CatBounds | undefined, displayBounds: Rectangle): CatBounds {
   const windowBounds = mainWindow?.getBounds();
   if (!catBounds || !windowBounds) {
@@ -174,6 +204,7 @@ function resolveCatBounds(catBounds: CatBounds | undefined, displayBounds: Recta
 }
 
 function createAlertHtml(todo: AlertPayload, catBounds: CatBounds): string {
+  const catAssets = getCatAssets();
   const title = escapeHtml(todo.title);
   const dueAt = escapeHtml(formatAlertDate(todo.dueAt));
   const catCenterX = Math.round(catBounds.x + catBounds.width / 2);
@@ -284,7 +315,7 @@ function createAlertHtml(todo: AlertPayload, catBounds: CatBounds): string {
   <body>
     <div class="stage">
       <button class="backdrop-close" type="button" aria-label="알림 닫기"></button>
-      <img class="cat" src="${catAttackDataUrl}" alt="" />
+      <img class="cat" src="${catAssets.attack}" alt="" />
       <article class="todo">
         <button class="close" type="button" aria-label="알림 닫기">×</button>
         <div class="label">다가오는 todo</div>
@@ -297,7 +328,7 @@ function createAlertHtml(todo: AlertPayload, catBounds: CatBounds): string {
         button.addEventListener('click', () => window.close());
       });
       window.setTimeout(() => {
-        document.querySelector('.cat').src = '${catIdleDataUrl}';
+        document.querySelector('.cat').src = '${catAssets.idle}';
       }, 900);
       window.setTimeout(() => window.close(), 8000);
     </script>
@@ -354,6 +385,8 @@ function showTodoAlert(todo: AlertPayload): void {
 }
 
 app.whenReady().then(() => {
+  ipcMain.handle("assets:cat", () => getCatAssets());
+
   ipcMain.handle("todos:load", () => readState());
 
   ipcMain.handle("todos:add", async (_event, payload: { title: string; dueAt: string }) => {

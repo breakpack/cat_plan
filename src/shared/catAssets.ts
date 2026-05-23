@@ -28,5 +28,7 @@ function svgDataUrl(svg: string): string {
   return `data:image/svg+xml,${encodeURIComponent(svg.trim())}`;
 }
 
-export const catIdleDataUrl = svgDataUrl(catIdleSvg);
-export const catAttackDataUrl = svgDataUrl(catAttackSvg);
+export const fallbackCatAssets = {
+  idle: svgDataUrl(catIdleSvg),
+  attack: svgDataUrl(catAttackSvg)
+};

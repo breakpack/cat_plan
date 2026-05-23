@@ -365,9 +365,17 @@ input:focus {
 }
 
 .complete-button {
+  align-self: center;
+  justify-self: center;
   border: 1px solid rgba(32, 32, 29, 0.1);
   background: rgba(47, 158, 116, 0.1);
   color: #2f7f62;
+  padding: 0;
+}
+
+.complete-button svg {
+  display: block;
+  transform: translate(0.5px, 0.5px);
 }
 
 .todo-content {
