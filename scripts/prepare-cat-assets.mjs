@@ -4,9 +4,9 @@ import { copyFile, mkdir, rm } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
-const sourceDir = resolve("catset_assets", "catset_gifs", "cat01_gifs");
+const sourceDir = resolve("catset_assets", "catset_gifs", "cat05_gifs");
 const outputDir = resolve(".release-assets", "cat-assets");
-const assets = ["cat01_idle_blink_8fps.gif", "cat01_attack_12fps.gif"];
+const assets = ["cat05_idle_blink_8fps.gif", "cat05_attack_12fps.gif"];
 
 await rm(outputDir, { recursive: true, force: true });
 await mkdir(outputDir, { recursive: true });

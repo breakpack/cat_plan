@@ -27,8 +27,8 @@ interface AlertPayload extends Pick<Todo, "title" | "dueAt"> {
 }
 
 const catAssetFiles = {
-  idle: "cat01_idle_blink_8fps.gif",
-  attack: "cat01_attack_12fps.gif"
+  idle: "cat05_idle_blink_8fps.gif",
+  attack: "cat05_attack_12fps.gif"
 };
 
 function getStorePath(): string {
@@ -163,7 +163,7 @@ function formatAlertDate(iso: string): string {
 function readGifDataUrl(fileName: string): string | null {
   const candidates = [
     join(process.resourcesPath, "cat-assets", fileName),
-    join(app.getAppPath(), "catset_assets", "catset_gifs", "cat01_gifs", fileName)
+    join(app.getAppPath(), "catset_assets", "catset_gifs", "cat05_gifs", fileName)
   ];
 
   for (const candidate of candidates) {
