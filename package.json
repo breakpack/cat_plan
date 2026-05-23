@@ -2,6 +2,7 @@
   "name": "cat-todo-widget",
   "version": "0.1.0",
   "description": "A local Electron todo widget with cat reminder animations.",
+  "author": "breakpack",
   "private": true,
   "type": "module",
   "main": "out/main/index.js",
@@ -11,7 +12,9 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json",
     "lint": "eslint .",
-    "build": "npm run typecheck && electron-vite build"
+    "build": "npm run typecheck && electron-vite build",
+    "dist:mac": "npm run build && electron-builder --mac dmg zip --arm64 --publish never",
+    "dist:mac:x64": "npm run build && electron-builder --mac dmg zip --x64 --publish never"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -25,6 +28,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^42.2.0",
+    "electron-builder": "^26.8.1",
     "electron-vite": "^5.0.0",
     "eslint": "^9.17.0",
     "eslint-plugin-react-hooks": "^5.1.0",
@@ -32,5 +36,29 @@
     "typescript-eslint": "^8.18.2",
     "vite": "^7.3.3",
     "vitest": "^3.2.4"
+  },
+  "build": {
+    "appId": "com.breakpack.catplan",
+    "productName": "Cat Plan",
+    "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "identity": null,
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "dmg": {
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    }
   }
 }
