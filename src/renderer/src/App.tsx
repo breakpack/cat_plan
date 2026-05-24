@@ -6,6 +6,7 @@ import {
   Clock,
   Edit3,
   Minus,
+  Palette,
   Pause,
   Play,
   Plus,
@@ -14,16 +15,24 @@ import {
   Trash2,
   X
 } from "lucide-react";
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
-import type { AppState, CatAssets, Todo } from "../../shared/types";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { AppState, CatAssets, CatVariant, Todo } from "../../shared/types";
 import { fallbackCatAssets } from "../../shared/catAssets";
 import { findAlertableTodo, sortTodos } from "./todoLogic";
 
 const reminderPresets = [5, 10, 30, 60];
+const catOptions: Array<{ value: CatVariant; label: string }> = [
+  { value: "cat01", label: "01" },
+  { value: "cat02", label: "02" },
+  { value: "cat03", label: "03" },
+  { value: "cat04", label: "04" },
+  { value: "cat05", label: "05" }
+];
 const defaultState: AppState = {
   todos: [],
   settings: {
-    reminderLeadMinutes: 10
+    reminderLeadMinutes: 10,
+    catVariant: "cat05"
   }
 };
 
@@ -121,8 +130,8 @@ function App(): React.ReactElement {
     void window.todoApi.load().then((loaded) => {
       setState(loaded);
       setCustomReminder(String(loaded.settings.reminderLeadMinutes));
+      void window.assetApi.getCatAssets(loaded.settings.catVariant).then(setCatAssets);
     });
-    void window.assetApi.getCatAssets().then(setCatAssets);
 
     const unsubscribeAlertClosed = window.windowApi.onAlertClosed(restoreWidgetCat);
 
@@ -133,6 +142,33 @@ function App(): React.ReactElement {
       }
     };
   }, []);
+
+  const showThrowAlert = useCallback((todo: Pick<Todo, "title" | "dueAt">): void => {
+    const catBounds = catRef.current?.getBoundingClientRect();
+
+    setIsThrowing(true);
+    if (throwTimerRef.current !== undefined) {
+      window.clearTimeout(throwTimerRef.current);
+    }
+    throwTimerRef.current = window.setTimeout(() => {
+      setIsThrowing(false);
+      throwTimerRef.current = undefined;
+    }, 8200);
+
+    void window.windowApi.showAlert({
+      title: todo.title,
+      dueAt: todo.dueAt,
+      catVariant: state.settings.catVariant,
+      catBounds: catBounds
+        ? {
+            x: catBounds.x,
+            y: catBounds.y,
+            width: catBounds.width,
+            height: catBounds.height
+          }
+        : undefined
+    });
+  }, [state.settings.catVariant]);
 
   useEffect(() => {
     const tick = (): void => {
@@ -149,7 +185,7 @@ function App(): React.ReactElement {
     tick();
     const timer = window.setInterval(tick, 15_000);
     return () => window.clearInterval(timer);
-  }, [alertTodo?.todo.id, state.settings.reminderLeadMinutes, state.todos]);
+  }, [alertTodo?.todo.id, showThrowAlert, state.settings.reminderLeadMinutes, state.todos]);
 
   useEffect(() => {
     if (!alertTodo) {
@@ -159,32 +195,6 @@ function App(): React.ReactElement {
     const timer = window.setTimeout(() => setAlertTodo(null), 8000);
     return () => window.clearTimeout(timer);
   }, [alertTodo]);
-
-  function showThrowAlert(todo: Pick<Todo, "title" | "dueAt">): void {
-    const catBounds = catRef.current?.getBoundingClientRect();
-
-    setIsThrowing(true);
-    if (throwTimerRef.current !== undefined) {
-      window.clearTimeout(throwTimerRef.current);
-    }
-    throwTimerRef.current = window.setTimeout(() => {
-      setIsThrowing(false);
-      throwTimerRef.current = undefined;
-    }, 8200);
-
-    void window.windowApi.showAlert({
-      title: todo.title,
-      dueAt: todo.dueAt,
-      catBounds: catBounds
-        ? {
-            x: catBounds.x,
-            y: catBounds.y,
-            width: catBounds.width,
-            height: catBounds.height
-          }
-        : undefined
-    });
-  }
 
   async function submitTodo(event: FormEvent): Promise<void> {
     event.preventDefault();
@@ -249,6 +259,12 @@ function App(): React.ReactElement {
     const nextState = await window.todoApi.updateSettings({ reminderLeadMinutes: minutes });
     setState(nextState);
     setCustomReminder(String(nextState.settings.reminderLeadMinutes));
+  }
+
+  async function updateCatVariant(catVariant: CatVariant): Promise<void> {
+    const nextState = await window.todoApi.updateSettings({ catVariant });
+    setState(nextState);
+    setCatAssets(await window.assetApi.getCatAssets(nextState.settings.catVariant));
   }
 
   return (
@@ -406,6 +422,24 @@ function App(): React.ReactElement {
                 >
                   <Save size={15} />
                 </button>
+              </div>
+              <div className="settings-label cat-settings-label">
+                <Palette size={16} />
+                <span>고양이</span>
+              </div>
+              <div className="cat-picker" role="radiogroup" aria-label="고양이 선택">
+                {catOptions.map((option) => (
+                  <button
+                    key={option.value}
+                    aria-checked={state.settings.catVariant === option.value}
+                    className={state.settings.catVariant === option.value ? "selected" : ""}
+                    role="radio"
+                    type="button"
+                    onClick={() => void updateCatVariant(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
               </div>
             </section>
 

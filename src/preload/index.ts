@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { AppState, CatAssets, Settings, Todo, TodoPatch } from "../shared/types.js";
+import type { AppState, CatAssets, CatVariant, Settings, Todo, TodoPatch } from "../shared/types.js";
 
 export interface CatBounds {
   x: number;
@@ -10,6 +10,7 @@ export interface CatBounds {
 
 export interface AlertPayload extends Pick<Todo, "title" | "dueAt"> {
   catBounds?: CatBounds;
+  catVariant?: CatVariant;
 }
 
 const todoApi = {
@@ -35,7 +36,7 @@ const windowApi = {
 };
 
 const assetApi = {
-  getCatAssets: (): Promise<CatAssets> => ipcRenderer.invoke("assets:cat")
+  getCatAssets: (variant?: CatVariant): Promise<CatAssets> => ipcRenderer.invoke("assets:cat", variant)
 };
 
 contextBridge.exposeInMainWorld("todoApi", todoApi);

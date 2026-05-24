@@ -5,11 +5,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
 import { fallbackCatAssets } from "../shared/catAssets.js";
-import type { AppState, CatAssets, Settings, Todo, TodoPatch } from "../shared/types.js";
+import type { AppState, CatAssets, CatVariant, Settings, Todo, TodoPatch } from "../shared/types.js";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
+const catVariants: CatVariant[] = ["cat01", "cat02", "cat03", "cat04", "cat05"];
 const defaultSettings: Settings = {
-  reminderLeadMinutes: 10
+  reminderLeadMinutes: 10,
+  catVariant: "cat05"
 };
 
 let mainWindow: BrowserWindow | null = null;
@@ -24,15 +26,15 @@ interface CatBounds {
 
 interface AlertPayload extends Pick<Todo, "title" | "dueAt"> {
   catBounds?: CatBounds;
+  catVariant?: CatVariant;
 }
-
-const catAssetFiles = {
-  idle: "cat05_idle_blink_8fps.gif",
-  attack: "cat05_attack_12fps.gif"
-};
 
 function isTodoStatus(value: unknown): value is Todo["status"] {
   return value === undefined || value === "todo" || value === "inProgress";
+}
+
+function isCatVariant(value: unknown): value is CatVariant {
+  return typeof value === "string" && catVariants.includes(value as CatVariant);
 }
 
 function getStorePath(): string {
@@ -64,6 +66,9 @@ function normalizeState(value: unknown): AppState {
     : [];
 
   const reminderLeadMinutes = Number(record.settings?.reminderLeadMinutes);
+  const catVariant = isCatVariant(record.settings?.catVariant)
+    ? record.settings.catVariant
+    : defaultSettings.catVariant;
 
   return {
     todos,
@@ -71,7 +76,8 @@ function normalizeState(value: unknown): AppState {
       reminderLeadMinutes:
         Number.isFinite(reminderLeadMinutes) && reminderLeadMinutes > 0
           ? Math.round(reminderLeadMinutes)
-          : defaultSettings.reminderLeadMinutes
+          : defaultSettings.reminderLeadMinutes,
+      catVariant
     }
   };
 }
@@ -168,10 +174,17 @@ function formatAlertDate(iso: string): string {
   }).format(new Date(iso));
 }
 
-function readGifDataUrl(fileName: string): string | null {
+function getCatAssetFiles(variant: CatVariant): CatAssets {
+  return {
+    idle: `${variant}_idle_blink_8fps.gif`,
+    attack: `${variant}_attack_12fps.gif`
+  };
+}
+
+function readGifDataUrl(variant: CatVariant, fileName: string): string | null {
   const candidates = [
-    join(process.resourcesPath, "cat-assets", fileName),
-    join(app.getAppPath(), "catset_assets", "catset_gifs", "cat05_gifs", fileName)
+    join(process.resourcesPath, "cat-assets", variant, fileName),
+    join(app.getAppPath(), "catset_assets", "catset_gifs", `${variant}_gifs`, fileName)
   ];
 
   for (const candidate of candidates) {
@@ -185,10 +198,13 @@ function readGifDataUrl(fileName: string): string | null {
   return null;
 }
 
-function getCatAssets(): CatAssets {
+function getCatAssets(variant = defaultSettings.catVariant): CatAssets {
+  const safeVariant = isCatVariant(variant) ? variant : defaultSettings.catVariant;
+  const catAssetFiles = getCatAssetFiles(safeVariant);
+
   return {
-    idle: readGifDataUrl(catAssetFiles.idle) ?? fallbackCatAssets.idle,
-    attack: readGifDataUrl(catAssetFiles.attack) ?? fallbackCatAssets.attack
+    idle: readGifDataUrl(safeVariant, catAssetFiles.idle) ?? fallbackCatAssets.idle,
+    attack: readGifDataUrl(safeVariant, catAssetFiles.attack) ?? fallbackCatAssets.attack
   };
 }
 
@@ -212,7 +228,7 @@ function resolveCatBounds(catBounds: CatBounds | undefined, displayBounds: Recta
 }
 
 function createAlertHtml(todo: AlertPayload, catBounds: CatBounds): string {
-  const catAssets = getCatAssets();
+  const catAssets = getCatAssets(todo.catVariant);
   const title = escapeHtml(todo.title);
   const dueAt = escapeHtml(formatAlertDate(todo.dueAt));
   const catCenterX = Math.round(catBounds.x + catBounds.width / 2);
@@ -393,7 +409,7 @@ function showTodoAlert(todo: AlertPayload): void {
 }
 
 app.whenReady().then(() => {
-  ipcMain.handle("assets:cat", () => getCatAssets());
+  ipcMain.handle("assets:cat", (_event, variant?: CatVariant) => getCatAssets(variant));
 
   ipcMain.handle("todos:load", () => readState());
 
@@ -477,7 +493,8 @@ app.whenReady().then(() => {
         reminderLeadMinutes:
           Number.isFinite(reminderLeadMinutes) && reminderLeadMinutes > 0
             ? Math.min(1440, Math.round(reminderLeadMinutes))
-            : state.settings.reminderLeadMinutes
+            : state.settings.reminderLeadMinutes,
+        catVariant: isCatVariant(settings.catVariant) ? settings.catVariant : state.settings.catVariant
       }
     }));
   });

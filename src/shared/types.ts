@@ -1,4 +1,5 @@
 export type TodoStatus = "todo" | "inProgress";
+export type CatVariant = "cat01" | "cat02" | "cat03" | "cat04" | "cat05";
 
 export interface Todo {
   id: string;
@@ -13,6 +14,7 @@ export interface Todo {
 
 export interface Settings {
   reminderLeadMinutes: number;
+  catVariant: CatVariant;
 }
 
 export interface AppState {
