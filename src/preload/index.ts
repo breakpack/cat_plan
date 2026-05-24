@@ -15,7 +15,8 @@ export interface AlertPayload extends Pick<Todo, "title" | "dueAt"> {
 
 const todoApi = {
   load: (): Promise<AppState> => ipcRenderer.invoke("todos:load"),
-  add: (title: string, dueAt: string): Promise<AppState> => ipcRenderer.invoke("todos:add", { title, dueAt }),
+  add: (title: string, dueAt: string, memo?: string): Promise<AppState> =>
+    ipcRenderer.invoke("todos:add", { title, dueAt, memo }),
   update: (id: string, patch: TodoPatch): Promise<AppState> => ipcRenderer.invoke("todos:update", id, patch),
   delete: (id: string): Promise<AppState> => ipcRenderer.invoke("todos:delete", id),
   markAlerted: (id: string, dueAt: string): Promise<AppState> =>

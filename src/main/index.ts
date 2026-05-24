@@ -61,6 +61,7 @@ function normalizeState(value: unknown): AppState {
   const todos = Array.isArray(record.todos)
     ? record.todos.filter(isTodo).map((todo) => ({
         ...todo,
+        memo: typeof todo.memo === "string" ? todo.memo : undefined,
         status: todo.completed ? undefined : todo.status
       }))
     : [];
@@ -91,6 +92,7 @@ function isTodo(value: unknown): value is Todo {
   return (
     typeof record.id === "string" &&
     typeof record.title === "string" &&
+    (record.memo === undefined || typeof record.memo === "string") &&
     isIsoDate(record.dueAt) &&
     typeof record.completed === "boolean" &&
     isTodoStatus(record.status) &&
@@ -126,9 +128,9 @@ async function updateState(updater: (state: AppState) => AppState): Promise<AppS
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 320,
-    height: 470,
+    height: 560,
     minWidth: 292,
-    minHeight: 390,
+    minHeight: 460,
     frame: false,
     transparent: false,
     hasShadow: true,
@@ -413,8 +415,9 @@ app.whenReady().then(() => {
 
   ipcMain.handle("todos:load", () => readState());
 
-  ipcMain.handle("todos:add", async (_event, payload: { title: string; dueAt: string }) => {
+  ipcMain.handle("todos:add", async (_event, payload: { title: string; dueAt: string; memo?: string }) => {
     const title = payload.title.trim();
+    const memo = typeof payload.memo === "string" ? payload.memo.trim() : "";
     if (!title || !isIsoDate(payload.dueAt)) {
       throw new Error("Invalid todo payload.");
     }
@@ -423,6 +426,7 @@ app.whenReady().then(() => {
     const todo: Todo = {
       id: randomUUID(),
       title,
+      memo: memo || undefined,
       dueAt: new Date(payload.dueAt).toISOString(),
       completed: false,
       status: "todo",
@@ -446,6 +450,7 @@ app.whenReady().then(() => {
 
         const dueAt = patch.dueAt && isIsoDate(patch.dueAt) ? new Date(patch.dueAt).toISOString() : todo.dueAt;
         const title = typeof patch.title === "string" && patch.title.trim() ? patch.title.trim() : todo.title;
+        const memo = typeof patch.memo === "string" ? patch.memo.trim() : todo.memo;
         const completed = typeof patch.completed === "boolean" ? patch.completed : todo.completed;
         const nextStatus =
           Object.prototype.hasOwnProperty.call(patch, "status") && isTodoStatus(patch.status)
@@ -456,6 +461,7 @@ app.whenReady().then(() => {
         return {
           ...todo,
           title,
+          memo: memo || undefined,
           dueAt,
           completed,
           status: completed ? undefined : (nextStatus ?? "todo"),

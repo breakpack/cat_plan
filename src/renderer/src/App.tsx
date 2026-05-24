@@ -38,6 +38,7 @@ const defaultState: AppState = {
 
 interface Draft {
   title: string;
+  memo: string;
   duePicker: string;
 }
 
@@ -100,11 +101,11 @@ function App(): React.ReactElement {
   const catRef = useRef<HTMLImageElement>(null);
   const throwTimerRef = useRef<number | undefined>(undefined);
   const [state, setState] = useState<AppState>(defaultState);
-  const [draft, setDraft] = useState<Draft>({ title: "", duePicker: "" });
+  const [draft, setDraft] = useState<Draft>({ title: "", memo: "", duePicker: "" });
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<Draft>({ title: "", duePicker: "" });
+  const [editDraft, setEditDraft] = useState<Draft>({ title: "", memo: "", duePicker: "" });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [customReminder, setCustomReminder] = useState("10");
@@ -213,9 +214,9 @@ function App(): React.ReactElement {
     setBusy(true);
     setError("");
     try {
-      const nextState = await window.todoApi.add(title, dueAt.toISOString());
+      const nextState = await window.todoApi.add(title, dueAt.toISOString(), draft.memo);
       setState(nextState);
-      setDraft({ title: "", duePicker: "" });
+      setDraft({ title: "", memo: "", duePicker: "" });
       setIsAddOpen(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Todo를 저장하지 못했습니다.");
@@ -236,6 +237,7 @@ function App(): React.ReactElement {
     setEditId(todo.id);
     setEditDraft({
       title: todo.title,
+      memo: todo.memo ?? "",
       duePicker: toDateTimeLocal(new Date(todo.dueAt))
     });
   }
@@ -250,6 +252,7 @@ function App(): React.ReactElement {
 
     await updateTodo(todo.id, {
       title,
+      memo: editDraft.memo,
       dueAt: dueAt.toISOString()
     });
     setEditId(null);
@@ -377,6 +380,16 @@ function App(): React.ReactElement {
                 value={draft.title}
                 placeholder="예: 회의 자료 정리"
                 onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+              />
+            </label>
+
+            <label>
+              <span>메모</span>
+              <textarea
+                value={draft.memo}
+                placeholder="필요한 내용을 짧게 적어두세요"
+                rows={3}
+                onChange={(event) => setDraft((current) => ({ ...current, memo: event.target.value }))}
               />
             </label>
 
@@ -529,10 +542,18 @@ function TodoBlock({
         {editing ? (
           <div className="edit-fields">
             <input
+              aria-label="Todo 제목 수정"
               value={editDraft.title}
               onChange={(event) => setEditDraft((current) => ({ ...current, title: event.target.value }))}
             />
+            <textarea
+              aria-label="Todo 메모 수정"
+              value={editDraft.memo}
+              rows={2}
+              onChange={(event) => setEditDraft((current) => ({ ...current, memo: event.target.value }))}
+            />
             <input
+              aria-label="Todo 기한 수정"
               type="datetime-local"
               value={editDraft.duePicker}
               onChange={(event) => setEditDraft((current) => ({ ...current, duePicker: event.target.value }))}
@@ -546,6 +567,7 @@ function TodoBlock({
               <span>{toReadableDate(todo.dueAt)}</span>
               <small>{formatRemaining(todo.dueAt)}</small>
             </div>
+            {todo.memo && <p className="todo-memo">{todo.memo}</p>}
           </>
         )}
       </div>

@@ -4,6 +4,7 @@ export type CatVariant = "cat01" | "cat02" | "cat03" | "cat04" | "cat05";
 export interface Todo {
   id: string;
   title: string;
+  memo?: string;
   dueAt: string;
   completed: boolean;
   status?: TodoStatus;
@@ -27,4 +28,4 @@ export interface CatAssets {
   attack: string;
 }
 
-export type TodoPatch = Partial<Pick<Todo, "title" | "dueAt" | "completed" | "status">>;
+export type TodoPatch = Partial<Pick<Todo, "title" | "memo" | "dueAt" | "completed" | "status">>;

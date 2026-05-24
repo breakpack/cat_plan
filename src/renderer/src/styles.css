@@ -20,7 +20,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -198,7 +199,8 @@ button {
   font-weight: 800;
 }
 
-input {
+input,
+textarea {
   width: 100%;
   min-width: 0;
   border: 1px solid rgba(32, 32, 29, 0.14);
@@ -209,7 +211,13 @@ input {
   padding: 9px 10px;
 }
 
-input:focus {
+textarea {
+  resize: vertical;
+  line-height: 1.35;
+}
+
+input:focus,
+textarea:focus {
   border-color: #2f9e74;
   box-shadow: 0 0 0 3px rgba(47, 158, 116, 0.14);
 }
@@ -349,6 +357,11 @@ input:focus {
   height: 40px;
 }
 
+.todo-modal textarea {
+  min-height: 70px;
+  max-height: 120px;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -412,10 +425,10 @@ input:focus {
 
 .todo-block {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr) auto;
-  align-items: center;
+  grid-template-columns: 34px minmax(0, 1fr) 84px;
+  align-items: start;
   gap: 8px;
-  min-height: 66px;
+  min-height: 76px;
   padding: 9px;
   border: 1px solid rgba(82, 74, 61, 0.1);
   border-left: 4px solid #2f9e74;
@@ -440,7 +453,7 @@ input:focus {
 }
 
 .complete-button {
-  align-self: center;
+  align-self: start;
   justify-self: center;
   border: 1px solid rgba(32, 32, 29, 0.1);
   background: rgba(47, 158, 116, 0.1);
@@ -457,6 +470,7 @@ input:focus {
   display: grid;
   min-width: 0;
   gap: 7px;
+  padding-top: 2px;
 }
 
 .todo-content strong {
@@ -487,8 +501,21 @@ input:focus {
 
 .todo-actions {
   display: grid;
-  grid-template-columns: repeat(3, 28px);
+  grid-template-columns: repeat(3, 26px);
   gap: 2px;
+  align-self: start;
+  justify-self: end;
+}
+
+.todo-memo {
+  display: -webkit-box;
+  margin: -1px 0 0;
+  overflow: hidden;
+  color: #746e64;
+  font-size: 11px;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .progress-stack {
@@ -522,6 +549,12 @@ input:focus {
   padding: 5px 8px;
 }
 
+.edit-fields textarea {
+  min-height: 54px;
+  max-height: 90px;
+  padding: 6px 8px;
+}
+
 .completed-heading {
   margin: 6px 0 0;
   color: #746e64;
@@ -546,12 +579,12 @@ input:focus {
   }
 
   .todo-block {
-    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-columns: 30px minmax(0, 1fr) 80px;
   }
 
   .todo-actions {
-    grid-column: 2;
-    grid-template-columns: repeat(3, 28px);
+    grid-column: auto;
+    grid-template-columns: repeat(3, 25px);
     justify-self: end;
   }
 }
