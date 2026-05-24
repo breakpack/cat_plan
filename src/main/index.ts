@@ -31,6 +31,10 @@ const catAssetFiles = {
   attack: "cat05_attack_12fps.gif"
 };
 
+function isTodoStatus(value: unknown): value is Todo["status"] {
+  return value === undefined || value === "todo" || value === "inProgress";
+}
+
 function getStorePath(): string {
   return join(app.getPath("userData"), "todos.json");
 }
@@ -53,7 +57,10 @@ function normalizeState(value: unknown): AppState {
 
   const record = value as Partial<AppState>;
   const todos = Array.isArray(record.todos)
-    ? record.todos.filter(isTodo).map((todo) => ({ ...todo }))
+    ? record.todos.filter(isTodo).map((todo) => ({
+        ...todo,
+        status: todo.completed ? undefined : todo.status
+      }))
     : [];
 
   const reminderLeadMinutes = Number(record.settings?.reminderLeadMinutes);
@@ -80,6 +87,7 @@ function isTodo(value: unknown): value is Todo {
     typeof record.title === "string" &&
     isIsoDate(record.dueAt) &&
     typeof record.completed === "boolean" &&
+    isTodoStatus(record.status) &&
     isIsoDate(record.createdAt) &&
     isIsoDate(record.updatedAt) &&
     (record.alertedForDueAt === undefined || isIsoDate(record.alertedForDueAt))
@@ -112,9 +120,9 @@ async function updateState(updater: (state: AppState) => AppState): Promise<AppS
 function createWindow(): void {
   mainWindow = new BrowserWindow({
     width: 320,
-    height: 390,
+    height: 470,
     minWidth: 292,
-    minHeight: 320,
+    minHeight: 390,
     frame: false,
     transparent: false,
     hasShadow: true,
@@ -401,6 +409,7 @@ app.whenReady().then(() => {
       title,
       dueAt: new Date(payload.dueAt).toISOString(),
       completed: false,
+      status: "todo",
       createdAt: now,
       updatedAt: now
     };
@@ -422,6 +431,10 @@ app.whenReady().then(() => {
         const dueAt = patch.dueAt && isIsoDate(patch.dueAt) ? new Date(patch.dueAt).toISOString() : todo.dueAt;
         const title = typeof patch.title === "string" && patch.title.trim() ? patch.title.trim() : todo.title;
         const completed = typeof patch.completed === "boolean" ? patch.completed : todo.completed;
+        const nextStatus =
+          Object.prototype.hasOwnProperty.call(patch, "status") && isTodoStatus(patch.status)
+            ? patch.status
+            : todo.status;
         const dueChanged = dueAt !== todo.dueAt;
 
         return {
@@ -429,6 +442,7 @@ app.whenReady().then(() => {
           title,
           dueAt,
           completed,
+          status: completed ? undefined : (nextStatus ?? "todo"),
           alertedForDueAt: dueChanged ? undefined : todo.alertedForDueAt,
           updatedAt: new Date().toISOString()
         };

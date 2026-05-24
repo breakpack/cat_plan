@@ -6,6 +6,8 @@ import {
   Clock,
   Edit3,
   Minus,
+  Pause,
+  Play,
   Plus,
   Save,
   Settings,
@@ -103,6 +105,8 @@ function App(): React.ReactElement {
 
   const sortedTodos = useMemo(() => sortTodos(state.todos), [state.todos]);
   const activeTodos = sortedTodos.filter((todo) => !todo.completed);
+  const waitingTodos = activeTodos.filter((todo) => todo.status !== "inProgress");
+  const inProgressTodos = activeTodos.filter((todo) => todo.status === "inProgress");
   const completedTodos = sortedTodos.filter((todo) => todo.completed);
 
   function restoreWidgetCat(): void {
@@ -292,7 +296,7 @@ function App(): React.ReactElement {
           </div>
         )}
 
-        {activeTodos.map((todo) => (
+        {waitingTodos.map((todo) => (
           <TodoBlock
             key={todo.id}
             todo={todo}
@@ -303,9 +307,34 @@ function App(): React.ReactElement {
             onSave={() => void saveEdit(todo)}
             onCancel={() => setEditId(null)}
             onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
+            onProgressToggle={() => void updateTodo(todo.id, { status: "inProgress" })}
             onDelete={() => void deleteTodo(todo.id)}
           />
         ))}
+
+        {inProgressTodos.length > 0 && (
+          <section className="progress-stack" aria-label="진행중 todo">
+            <div className="progress-heading">
+              <span>진행중</span>
+              <small>{inProgressTodos.length}개</small>
+            </div>
+            {inProgressTodos.map((todo) => (
+              <TodoBlock
+                key={todo.id}
+                todo={todo}
+                editing={editId === todo.id}
+                editDraft={editDraft}
+                setEditDraft={setEditDraft}
+                onEdit={() => startEdit(todo)}
+                onSave={() => void saveEdit(todo)}
+                onCancel={() => setEditId(null)}
+                onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
+                onProgressToggle={() => void updateTodo(todo.id, { status: "todo" })}
+                onDelete={() => void deleteTodo(todo.id)}
+              />
+            ))}
+          </section>
+        )}
       </section>
 
       {isAddOpen && (
@@ -437,6 +466,7 @@ interface TodoBlockProps {
   onSave: () => void;
   onCancel: () => void;
   onToggle: () => void;
+  onProgressToggle?: () => void;
   onDelete: () => void;
 }
 
@@ -449,12 +479,14 @@ function TodoBlock({
   onSave,
   onCancel,
   onToggle,
+  onProgressToggle,
   onDelete
 }: TodoBlockProps): React.ReactElement {
   const overdue = !todo.completed && new Date(todo.dueAt).getTime() < Date.now();
+  const inProgress = todo.status === "inProgress";
 
   return (
-    <article className={`todo-block ${todo.completed ? "done" : ""} ${overdue ? "overdue" : ""}`}>
+    <article className={`todo-block ${todo.completed ? "done" : ""} ${overdue ? "overdue" : ""} ${inProgress ? "in-progress" : ""}`}>
       <button className="complete-button" aria-label="완료 전환" type="button" onClick={onToggle}>
         {todo.completed ? <CheckCircle2 size={18} /> : <Check size={18} />}
       </button>
@@ -496,6 +528,16 @@ function TodoBlock({
           </>
         ) : (
           <>
+            {onProgressToggle && (
+              <button
+                aria-label={inProgress ? "진행중 해제" : "진행중으로 이동"}
+                title={inProgress ? "대기로 이동" : "진행중"}
+                type="button"
+                onClick={onProgressToggle}
+              >
+                {inProgress ? <Pause size={16} /> : <Play size={16} />}
+              </button>
+            )}
             <button aria-label="수정" type="button" onClick={onEdit}>
               <Edit3 size={16} />
             </button>
