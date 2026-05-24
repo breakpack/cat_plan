@@ -107,6 +107,27 @@ button {
   background: rgba(32, 32, 29, 0.08);
 }
 
+.archive-action {
+  position: relative;
+}
+
+.archive-action span {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  display: grid;
+  min-width: 14px;
+  height: 14px;
+  place-items: center;
+  border: 1px solid rgba(255, 254, 251, 0.9);
+  border-radius: 999px;
+  background: #d65445;
+  color: #fffefb;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+}
+
 .calendar-band {
   position: relative;
   flex: 0 0 92px;
@@ -275,7 +296,8 @@ input:focus {
   backdrop-filter: blur(4px);
 }
 
-.todo-modal {
+.todo-modal,
+.archive-modal {
   display: grid;
   width: min(100%, 304px);
   max-height: calc(100vh - 24px);
@@ -291,7 +313,8 @@ input:focus {
   scrollbar-width: none;
 }
 
-.todo-modal::-webkit-scrollbar {
+.todo-modal::-webkit-scrollbar,
+.archive-modal::-webkit-scrollbar {
   display: none;
 }
 
@@ -314,6 +337,26 @@ input:focus {
   gap: 7px;
   border-top: 1px solid rgba(32, 32, 29, 0.08);
   padding-top: 9px;
+}
+
+.archive-modal {
+  min-height: 164px;
+}
+
+.archive-list {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 1px;
+}
+
+.archive-list .todo-block {
+  min-height: 62px;
+}
+
+.archive-empty {
+  min-height: 86px;
 }
 
 .todo-list {

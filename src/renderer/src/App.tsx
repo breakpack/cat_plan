@@ -1,4 +1,5 @@
 import {
+  Archive,
   Bell,
   Check,
   CheckCircle2,
@@ -90,6 +91,7 @@ function App(): React.ReactElement {
   const [state, setState] = useState<AppState>(defaultState);
   const [draft, setDraft] = useState<Draft>({ title: "", duePicker: "" });
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>({ title: "", duePicker: "" });
   const [error, setError] = useState("");
@@ -253,6 +255,16 @@ function App(): React.ReactElement {
           <button aria-label="Todo 추가" type="button" onClick={() => setIsAddOpen(true)}>
             <Plus size={16} />
           </button>
+          <button
+            aria-label={`보관함 열기, 완료 ${completedTodos.length}개`}
+            className="archive-action"
+            title="보관함"
+            type="button"
+            onClick={() => setIsArchiveOpen(true)}
+          >
+            <Archive size={15} />
+            {completedTodos.length > 0 && <span>{completedTodos.length}</span>}
+          </button>
           <button aria-label="창 최소화" type="button" onClick={() => void window.windowApi.minimize()}>
             <Minus size={15} />
           </button>
@@ -273,30 +285,14 @@ function App(): React.ReactElement {
       </section>
 
       <section className="todo-list" aria-label="Todo 목록">
-        {activeTodos.length === 0 && completedTodos.length === 0 && (
+        {activeTodos.length === 0 && (
           <div className="empty-state">
             <Bell size={22} />
-            <span>아직 todo가 없습니다.</span>
+            <span>진행 중 todo가 없습니다.</span>
           </div>
         )}
 
         {activeTodos.map((todo) => (
-          <TodoBlock
-            key={todo.id}
-            todo={todo}
-            editing={editId === todo.id}
-            editDraft={editDraft}
-            setEditDraft={setEditDraft}
-            onEdit={() => startEdit(todo)}
-            onSave={() => void saveEdit(todo)}
-            onCancel={() => setEditId(null)}
-            onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
-            onDelete={() => void deleteTodo(todo.id)}
-          />
-        ))}
-
-        {completedTodos.length > 0 && <h2 className="completed-heading">완료됨</h2>}
-        {completedTodos.map((todo) => (
           <TodoBlock
             key={todo.id}
             todo={todo}
@@ -389,6 +385,43 @@ function App(): React.ReactElement {
               <span>추가</span>
             </button>
           </form>
+        </div>
+      )}
+
+      {isArchiveOpen && (
+        <div className="modal-stage" role="presentation">
+          <section className="archive-modal" aria-label="완료 todo 보관함">
+            <div className="modal-header">
+              <strong>보관함</strong>
+              <button aria-label="보관함 닫기" type="button" onClick={() => setIsArchiveOpen(false)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="archive-list">
+              {completedTodos.length === 0 ? (
+                <div className="empty-state archive-empty">
+                  <Archive size={20} />
+                  <span>보관된 todo가 없습니다.</span>
+                </div>
+              ) : (
+                completedTodos.map((todo) => (
+                  <TodoBlock
+                    key={todo.id}
+                    todo={todo}
+                    editing={editId === todo.id}
+                    editDraft={editDraft}
+                    setEditDraft={setEditDraft}
+                    onEdit={() => startEdit(todo)}
+                    onSave={() => void saveEdit(todo)}
+                    onCancel={() => setEditId(null)}
+                    onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
+                    onDelete={() => void deleteTodo(todo.id)}
+                  />
+                ))
+              )}
+            </div>
+          </section>
         </div>
       )}
     </main>
