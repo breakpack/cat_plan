@@ -399,14 +399,37 @@ textarea:focus {
   min-height: 86px;
 }
 
-.todo-list {
+.todo-board {
   display: flex;
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
-  overflow: auto;
+  gap: 10px;
+  overflow: hidden;
   padding: 0 12px 12px;
+}
+
+.waiting-pane {
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.todo-scroll,
+.progress-scroll,
+.archive-list {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(82, 74, 61, 0.22) transparent;
+}
+
+.todo-scroll {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  align-content: start;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .empty-state {
@@ -518,12 +541,25 @@ textarea:focus {
   -webkit-line-clamp: 2;
 }
 
-.progress-stack {
+.progress-pane {
   display: grid;
+  min-height: 104px;
+  max-height: min(42vh, 244px);
+  flex: 0 1 auto;
+  grid-template-rows: auto minmax(0, 1fr);
   gap: 8px;
-  margin-top: auto;
+  overflow: hidden;
   border-top: 1px solid rgba(82, 74, 61, 0.1);
-  padding-top: 9px;
+  padding-top: 8px;
+}
+
+.progress-scroll {
+  display: grid;
+  min-height: 0;
+  align-content: start;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 2px;
 }
 
 .progress-heading {

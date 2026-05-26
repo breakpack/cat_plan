@@ -318,37 +318,17 @@ function App(): React.ReactElement {
         </div>
       </section>
 
-      <section className="todo-list" aria-label="Todo 목록">
-        {activeTodos.length === 0 && (
-          <div className="empty-state">
-            <Bell size={22} />
-            <span>진행 중 todo가 없습니다.</span>
-          </div>
-        )}
+      <section className="todo-board" aria-label="Todo 목록">
+        <section className="waiting-pane" aria-label="대기 todo">
+          <div className="todo-scroll">
+            {waitingTodos.length === 0 && (
+              <div className="empty-state">
+                <Bell size={22} />
+                <span>{inProgressTodos.length ? "대기 todo가 없습니다." : "아직 todo가 없습니다."}</span>
+              </div>
+            )}
 
-        {waitingTodos.map((todo) => (
-          <TodoBlock
-            key={todo.id}
-            todo={todo}
-            editing={editId === todo.id}
-            editDraft={editDraft}
-            setEditDraft={setEditDraft}
-            onEdit={() => startEdit(todo)}
-            onSave={() => void saveEdit(todo)}
-            onCancel={() => setEditId(null)}
-            onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
-            onProgressToggle={() => void updateTodo(todo.id, { status: "inProgress" })}
-            onDelete={() => void deleteTodo(todo.id)}
-          />
-        ))}
-
-        {inProgressTodos.length > 0 && (
-          <section className="progress-stack" aria-label="진행중 todo">
-            <div className="progress-heading">
-              <span>진행중</span>
-              <small>{inProgressTodos.length}개</small>
-            </div>
-            {inProgressTodos.map((todo) => (
+            {waitingTodos.map((todo) => (
               <TodoBlock
                 key={todo.id}
                 todo={todo}
@@ -359,10 +339,36 @@ function App(): React.ReactElement {
                 onSave={() => void saveEdit(todo)}
                 onCancel={() => setEditId(null)}
                 onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
-                onProgressToggle={() => void updateTodo(todo.id, { status: "todo" })}
+                onProgressToggle={() => void updateTodo(todo.id, { status: "inProgress" })}
                 onDelete={() => void deleteTodo(todo.id)}
               />
             ))}
+          </div>
+        </section>
+
+        {inProgressTodos.length > 0 && (
+          <section className="progress-pane" aria-label="진행중 todo">
+            <div className="progress-heading">
+              <span>진행중</span>
+              <small>{inProgressTodos.length}개</small>
+            </div>
+            <div className="progress-scroll">
+              {inProgressTodos.map((todo) => (
+                <TodoBlock
+                  key={todo.id}
+                  todo={todo}
+                  editing={editId === todo.id}
+                  editDraft={editDraft}
+                  setEditDraft={setEditDraft}
+                  onEdit={() => startEdit(todo)}
+                  onSave={() => void saveEdit(todo)}
+                  onCancel={() => setEditId(null)}
+                  onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
+                  onProgressToggle={() => void updateTodo(todo.id, { status: "todo" })}
+                  onDelete={() => void deleteTodo(todo.id)}
+                />
+              ))}
+            </div>
           </section>
         )}
       </section>
