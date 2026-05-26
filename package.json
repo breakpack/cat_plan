@@ -45,6 +45,7 @@
     "appId": "com.breakpack.catplan",
     "productName": "Cat Plan",
     "artifactName": "${productName}-${version}-${arch}.${ext}",
+    "icon": "build/icon",
     "asar": true,
     "directories": {
       "output": "release"
@@ -66,7 +67,7 @@
       "category": "public.app-category.productivity",
       "identity": null,
       "extendInfo": {
-        "LSUIElement": true
+        "LSUIElement": "1"
       },
       "target": [
         "dmg",
