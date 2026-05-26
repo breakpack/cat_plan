@@ -140,7 +140,7 @@ function createTrayIcon(): Electron.NativeImage {
     : nativeImage.createFromDataURL(
         "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAWUlEQVQ4je2UsQ0AIAgE7ez9L7MJChqTQkIc0SVyD/gTObwp2QmhSVrCwBB4gRKAB4iWXMm49+W2zFhC0w49JbZIWpUccHAFh4Y4Qzv15ENXOYGo+kvtlxuK1Ql7K1xOGQAAAABJRU5ErkJggg=="
       );
-  icon.setTemplateImage(true);
+  icon.setTemplateImage(false);
   return icon.resize({ width: 18, height: 18 });
 }
 
