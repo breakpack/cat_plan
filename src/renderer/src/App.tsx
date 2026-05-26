@@ -135,9 +135,20 @@ function App(): React.ReactElement {
     });
 
     const unsubscribeAlertClosed = window.windowApi.onAlertClosed(restoreWidgetCat);
+    const unsubscribeMenuCommand = window.windowApi.onMenuCommand((command) => {
+      if (command === "open-add") {
+        setIsArchiveOpen(false);
+        setIsAddOpen(true);
+        return;
+      }
+
+      setIsAddOpen(false);
+      setIsArchiveOpen(true);
+    });
 
     return () => {
       unsubscribeAlertClosed();
+      unsubscribeMenuCommand();
       if (throwTimerRef.current !== undefined) {
         window.clearTimeout(throwTimerRef.current);
       }

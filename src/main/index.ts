@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, screen, type Rectangle } from "electron";
+import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen, type Rectangle } from "electron";
 import { readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -16,6 +16,10 @@ const defaultSettings: Settings = {
 
 let mainWindow: BrowserWindow | null = null;
 let alertWindow: BrowserWindow | null = null;
+let tray: Tray | null = null;
+let isQuitting = false;
+
+type RendererMenuCommand = "open-add" | "open-archive";
 
 interface CatBounds {
   x: number;
@@ -125,7 +129,108 @@ async function updateState(updater: (state: AppState) => AppState): Promise<AppS
   return writeState(updater(state));
 }
 
+function createTrayIcon(): Electron.NativeImage {
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+      <path fill="#111111" d="M8 7h4l2 4h4l2-4h4v6l3 3v8h-3v3h-5v-3h-6v3H8v-3H5v-8l3-3V7z"/>
+      <path fill="#ffffff" d="M11 16h3v3h-3zm7 0h3v3h-3z"/>
+      <path fill="#111111" d="M14 21h4v2h-4z"/>
+    </svg>`;
+  const icon = nativeImage.createFromDataURL(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+  icon.setTemplateImage(true);
+  return icon.resize({ width: 18, height: 18 });
+}
+
+function updateTrayMenu(): void {
+  if (!tray) {
+    return;
+  }
+
+  const isVisible = Boolean(mainWindow?.isVisible());
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      {
+        label: isVisible ? "위젯 숨기기" : "위젯 열기",
+        click: () => toggleMainWindow()
+      },
+      {
+        label: "Todo 추가",
+        click: () => showMainWindow("open-add")
+      },
+      {
+        label: "보관함 열기",
+        click: () => showMainWindow("open-archive")
+      },
+      { type: "separator" },
+      {
+        label: "종료",
+        click: () => {
+          isQuitting = true;
+          app.quit();
+        }
+      }
+    ])
+  );
+}
+
+function createTray(): void {
+  if (tray) {
+    return;
+  }
+
+  tray = new Tray(createTrayIcon());
+  tray.setToolTip("Cat Plan");
+  tray.on("click", () => toggleMainWindow());
+  updateTrayMenu();
+}
+
+function sendRendererMenuCommand(command: RendererMenuCommand): void {
+  const send = (): void => {
+    setTimeout(() => {
+      if (!mainWindow?.isDestroyed()) {
+        mainWindow?.webContents.send("window:menu-command", command);
+      }
+    }, 120);
+  };
+
+  if (mainWindow?.webContents.isLoading()) {
+    mainWindow.webContents.once("did-finish-load", send);
+    return;
+  }
+
+  send();
+}
+
+function showMainWindow(command?: RendererMenuCommand): void {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    createWindow();
+  }
+
+  mainWindow?.show();
+  mainWindow?.focus();
+  updateTrayMenu();
+
+  if (command) {
+    sendRendererMenuCommand(command);
+  }
+}
+
+function hideMainWindow(): void {
+  mainWindow?.hide();
+  updateTrayMenu();
+}
+
+function toggleMainWindow(): void {
+  if (mainWindow?.isVisible()) {
+    hideMainWindow();
+    return;
+  }
+
+  showMainWindow();
+}
+
 function createWindow(): void {
+  const startHidden = process.platform === "darwin";
   mainWindow = new BrowserWindow({
     width: 320,
     height: 560,
@@ -149,7 +254,23 @@ function createWindow(): void {
   });
 
   mainWindow.once("ready-to-show", () => {
-    mainWindow?.show();
+    if (!startHidden) {
+      mainWindow?.show();
+    }
+    updateTrayMenu();
+  });
+
+  mainWindow.on("show", updateTrayMenu);
+  mainWindow.on("hide", updateTrayMenu);
+  mainWindow.on("close", (event) => {
+    if (process.platform === "darwin" && !isQuitting) {
+      event.preventDefault();
+      hideMainWindow();
+    }
+  });
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+    updateTrayMenu();
   });
 
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -416,6 +537,12 @@ function showTodoAlert(todo: AlertPayload): void {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin") {
+    app.dock?.hide();
+    app.setActivationPolicy("accessory");
+  }
+  createTray();
+
   ipcMain.handle("assets:cat", (_event, variant?: CatVariant) => getCatAssets(variant));
 
   ipcMain.handle("todos:load", () => readState());
@@ -511,10 +638,18 @@ app.whenReady().then(() => {
   });
 
   ipcMain.handle("window:minimize", () => {
+    if (process.platform === "darwin") {
+      hideMainWindow();
+      return;
+    }
     mainWindow?.minimize();
   });
 
   ipcMain.handle("window:close", () => {
+    if (process.platform === "darwin") {
+      hideMainWindow();
+      return;
+    }
     mainWindow?.close();
   });
 
@@ -528,10 +663,12 @@ app.whenReady().then(() => {
   createWindow();
 
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+    showMainWindow();
   });
+});
+
+app.on("before-quit", () => {
+  isQuitting = true;
 });
 
 app.on("window-all-closed", () => {

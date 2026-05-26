@@ -65,6 +65,9 @@
     "mac": {
       "category": "public.app-category.productivity",
       "identity": null,
+      "extendInfo": {
+        "LSUIElement": true
+      },
       "target": [
         "dmg",
         "zip"

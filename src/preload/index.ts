@@ -13,6 +13,8 @@ export interface AlertPayload extends Pick<Todo, "title" | "dueAt"> {
   catVariant?: CatVariant;
 }
 
+export type MenuCommand = "open-add" | "open-archive";
+
 const todoApi = {
   load: (): Promise<AppState> => ipcRenderer.invoke("todos:load"),
   add: (title: string, dueAt: string, memo?: string): Promise<AppState> =>
@@ -29,6 +31,11 @@ const windowApi = {
   minimize: (): Promise<void> => ipcRenderer.invoke("window:minimize"),
   close: (): Promise<void> => ipcRenderer.invoke("window:close"),
   showAlert: (todo: AlertPayload): Promise<void> => ipcRenderer.invoke("window:show-alert", todo),
+  onMenuCommand: (callback: (command: MenuCommand) => void): (() => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, command: MenuCommand): void => callback(command);
+    ipcRenderer.on("window:menu-command", listener);
+    return () => ipcRenderer.removeListener("window:menu-command", listener);
+  },
   onAlertClosed: (callback: () => void): (() => void) => {
     const listener = (): void => callback();
     ipcRenderer.on("window:alert-closed", listener);
