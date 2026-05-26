@@ -136,6 +136,7 @@ function createWindow(): void {
     hasShadow: true,
     resizable: true,
     alwaysOnTop: false,
+    autoHideMenuBar: true,
     show: false,
     backgroundColor: "#fbf7ef",
     title: "Cat Todo Widget",
@@ -367,6 +368,7 @@ function showTodoAlert(todo: AlertPayload): void {
 
   const { bounds } = screen.getPrimaryDisplay();
   const catBounds = resolveCatBounds(todo.catBounds, bounds);
+  const isWindows = process.platform === "win32";
   alertWindow = new BrowserWindow({
     x: bounds.x,
     y: bounds.y,
@@ -376,9 +378,10 @@ function showTodoAlert(todo: AlertPayload): void {
     transparent: true,
     resizable: false,
     movable: false,
-    focusable: false,
+    focusable: isWindows,
     skipTaskbar: true,
     alwaysOnTop: true,
+    autoHideMenuBar: true,
     hasShadow: false,
     show: false,
     backgroundColor: "#00000000",
@@ -389,8 +392,10 @@ function showTodoAlert(todo: AlertPayload): void {
     }
   });
 
-  alertWindow.setAlwaysOnTop(true, "screen-saver");
-  alertWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  alertWindow.setAlwaysOnTop(true, isWindows ? "pop-up-menu" : "screen-saver");
+  if (!isWindows) {
+    alertWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
   alertWindow.once("closed", () => {
     alertWindow = null;
     mainWindow?.webContents.send("window:alert-closed");

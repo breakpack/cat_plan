@@ -15,7 +15,10 @@
     "build": "npm run typecheck && electron-vite build",
     "prepare:dist-assets": "node scripts/prepare-cat-assets.mjs",
     "dist:mac": "npm run prepare:dist-assets && npm run build && electron-builder --mac dmg zip --arm64 --publish never",
-    "dist:mac:x64": "npm run prepare:dist-assets && npm run build && electron-builder --mac dmg zip --x64 --publish never"
+    "dist:mac:x64": "npm run prepare:dist-assets && npm run build && electron-builder --mac dmg zip --x64 --publish never",
+    "dist:win": "npm run prepare:dist-assets && npm run build && electron-builder --win nsis zip --x64 --publish never",
+    "dist:win:zip": "npm run prepare:dist-assets && npm run build && electron-builder --win zip --x64 --publish never",
+    "dist:win:arm64": "npm run prepare:dist-assets && npm run build && electron-builder --win nsis zip --arm64 --publish never"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -67,8 +70,23 @@
         "zip"
       ]
     },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ],
+      "requestedExecutionLevel": "asInvoker"
+    },
     "dmg": {
       "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Cat Plan"
     }
   }
 }
