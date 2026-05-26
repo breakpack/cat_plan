@@ -429,7 +429,7 @@ textarea:focus {
   align-content: start;
   gap: 8px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding: 0 2px 12px 0;
 }
 
 .empty-state {
@@ -451,7 +451,7 @@ textarea:focus {
   grid-template-columns: 34px minmax(0, 1fr) 84px;
   align-items: start;
   gap: 8px;
-  min-height: 76px;
+  min-height: 92px;
   padding: 9px;
   border: 1px solid rgba(82, 74, 61, 0.1);
   border-left: 4px solid #2f9e74;
@@ -505,21 +505,37 @@ textarea:focus {
 }
 
 .todo-meta {
-  display: flex;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
   min-width: 0;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 5px;
+  column-gap: 5px;
+  row-gap: 4px;
   color: #625d54;
   font-size: 12px;
 }
 
+.todo-meta svg {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.todo-meta span {
+  grid-column: 2;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .todo-meta small {
+  grid-column: 2;
+  justify-self: start;
   border-radius: 999px;
   background: rgba(255, 203, 107, 0.26);
   padding: 2px 6px;
   color: #71551a;
   font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .todo-actions {
@@ -559,7 +575,7 @@ textarea:focus {
   align-content: start;
   gap: 8px;
   overflow-y: auto;
-  padding-right: 2px;
+  padding: 0 2px 12px 0;
 }
 
 .progress-heading {
