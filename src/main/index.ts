@@ -1,5 +1,5 @@
 import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen, type Rectangle } from "electron";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -130,13 +130,16 @@ async function updateState(updater: (state: AppState) => AppState): Promise<AppS
 }
 
 function createTrayIcon(): Electron.NativeImage {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-      <path fill="#111111" d="M8 7h4l2 4h4l2-4h4v6l3 3v8h-3v3h-5v-3h-6v3H8v-3H5v-8l3-3V7z"/>
-      <path fill="#ffffff" d="M11 16h3v3h-3zm7 0h3v3h-3z"/>
-      <path fill="#111111" d="M14 21h4v2h-4z"/>
-    </svg>`;
-  const icon = nativeImage.createFromDataURL(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+  const candidates = [
+    join(process.resourcesPath, "tray", "trayTemplate.png"),
+    join(app.getAppPath(), "build", "tray", "trayTemplate.png")
+  ];
+  const iconPath = candidates.find((candidate) => existsSync(candidate));
+  const icon = iconPath
+    ? nativeImage.createFromPath(iconPath)
+    : nativeImage.createFromDataURL(
+        "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAWUlEQVQ4je2UsQ0AIAgE7ez9L7MJChqTQkIc0SVyD/gTObwp2QmhSVrCwBB4gRKAB4iWXMm49+W2zFhC0w49JbZIWpUccHAFh4Y4Qzv15ENXOYGo+kvtlxuK1Ql7K1xOGQAAAABJRU5ErkJggg=="
+      );
   icon.setTemplateImage(true);
   return icon.resize({ width: 18, height: 18 });
 }

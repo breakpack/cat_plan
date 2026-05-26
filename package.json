@@ -61,6 +61,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "build/tray",
+        "to": "tray",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "mac": {
