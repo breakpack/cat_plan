@@ -404,9 +404,15 @@ textarea:focus {
   min-height: 0;
   flex: 1;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   overflow: hidden;
   padding: 0 12px 12px;
+}
+
+.todo-board.resizing,
+.todo-board.resizing * {
+  cursor: row-resize;
+  user-select: none;
 }
 
 .waiting-pane {
@@ -557,6 +563,34 @@ textarea:focus {
   -webkit-line-clamp: 2;
 }
 
+.progress-resizer {
+  display: grid;
+  height: 14px;
+  flex: 0 0 14px;
+  place-items: center;
+  border-radius: 999px;
+  cursor: row-resize;
+  outline: 0;
+  -webkit-app-region: no-drag;
+}
+
+.progress-resizer span {
+  width: 46px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(82, 74, 61, 0.16);
+  transition:
+    background 120ms ease,
+    transform 120ms ease;
+}
+
+.progress-resizer:hover span,
+.progress-resizer:focus-visible span,
+.todo-board.resizing .progress-resizer span {
+  background: rgba(47, 158, 116, 0.5);
+  transform: scaleX(1.15);
+}
+
 .progress-pane {
   display: grid;
   min-height: 104px;
@@ -567,6 +601,10 @@ textarea:focus {
   overflow: hidden;
   border-top: 1px solid rgba(82, 74, 61, 0.1);
   padding-top: 8px;
+}
+
+.progress-pane.is-resized {
+  max-height: none;
 }
 
 .progress-scroll {

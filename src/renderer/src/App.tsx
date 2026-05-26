@@ -15,12 +15,16 @@ import {
   Trash2,
   X
 } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, type KeyboardEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AppState, CatAssets, CatVariant, Todo } from "../../shared/types";
 import { fallbackCatAssets } from "../../shared/catAssets";
 import { findAlertableTodo, sortTodos } from "./todoLogic";
 
 const reminderPresets = [5, 10, 30, 60];
+const progressPaneStorageKey = "cat-plan-progress-pane-height";
+const minimumProgressPaneHeight = 104;
+const minimumWaitingPaneHeight = 96;
+const todoBoardBottomPadding = 12;
 const catOptions: Array<{ value: CatVariant; label: string }> = [
   { value: "cat01", label: "01" },
   { value: "cat02", label: "02" },
@@ -97,8 +101,15 @@ function getDueFromDraft(draft: Draft): Date | null {
   return null;
 }
 
+function readStoredProgressPaneHeight(): number | null {
+  const stored = window.localStorage.getItem(progressPaneStorageKey);
+  const parsed = Number(stored);
+  return Number.isFinite(parsed) && parsed >= minimumProgressPaneHeight ? Math.round(parsed) : null;
+}
+
 function App(): React.ReactElement {
   const catRef = useRef<HTMLImageElement>(null);
+  const todoBoardRef = useRef<HTMLElement>(null);
   const throwTimerRef = useRef<number | undefined>(undefined);
   const [state, setState] = useState<AppState>(defaultState);
   const [draft, setDraft] = useState<Draft>({ title: "", memo: "", duePicker: "" });
@@ -112,12 +123,92 @@ function App(): React.ReactElement {
   const [alertTodo, setAlertTodo] = useState<AlertTodo | null>(null);
   const [isThrowing, setIsThrowing] = useState(false);
   const [catAssets, setCatAssets] = useState<CatAssets>(fallbackCatAssets);
+  const [progressPaneHeight, setProgressPaneHeight] = useState<number | null>(readStoredProgressPaneHeight);
+  const [isResizingProgress, setIsResizingProgress] = useState(false);
 
   const sortedTodos = useMemo(() => sortTodos(state.todos), [state.todos]);
   const activeTodos = sortedTodos.filter((todo) => !todo.completed);
   const waitingTodos = activeTodos.filter((todo) => todo.status !== "inProgress");
   const inProgressTodos = activeTodos.filter((todo) => todo.status === "inProgress");
   const completedTodos = sortedTodos.filter((todo) => todo.completed);
+
+  const clampProgressPaneHeight = useCallback((height: number): number => {
+    const boardHeight = todoBoardRef.current?.getBoundingClientRect().height ?? 0;
+    const maximumProgressPaneHeight = boardHeight
+      ? Math.max(minimumProgressPaneHeight, boardHeight - minimumWaitingPaneHeight)
+      : 320;
+
+    return Math.round(Math.min(maximumProgressPaneHeight, Math.max(minimumProgressPaneHeight, height)));
+  }, []);
+
+  const applyProgressPaneHeight = useCallback((height: number): void => {
+    const nextHeight = clampProgressPaneHeight(height);
+    setProgressPaneHeight(nextHeight);
+    window.localStorage.setItem(progressPaneStorageKey, String(nextHeight));
+  }, [clampProgressPaneHeight]);
+
+  function getProgressHeightFromPointer(clientY: number): number | null {
+    const boardBounds = todoBoardRef.current?.getBoundingClientRect();
+    if (!boardBounds) {
+      return null;
+    }
+
+    return boardBounds.bottom - clientY - todoBoardBottomPadding;
+  }
+
+  function beginProgressResize(event: ReactPointerEvent<HTMLDivElement>): void {
+    event.preventDefault();
+    setIsResizingProgress(true);
+
+    const updateFromPointer = (clientY: number): void => {
+      const nextHeight = getProgressHeightFromPointer(clientY);
+      if (nextHeight !== null) {
+        applyProgressPaneHeight(nextHeight);
+      }
+    };
+
+    updateFromPointer(event.clientY);
+
+    const handlePointerMove = (moveEvent: PointerEvent): void => {
+      moveEvent.preventDefault();
+      updateFromPointer(moveEvent.clientY);
+    };
+
+    const handlePointerUp = (): void => {
+      setIsResizingProgress(false);
+      window.removeEventListener("pointermove", handlePointerMove);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp, { once: true });
+  }
+
+  function adjustProgressPaneHeight(event: KeyboardEvent<HTMLDivElement>): void {
+    const currentHeight = progressPaneHeight ?? 150;
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      applyProgressPaneHeight(currentHeight + 24);
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      applyProgressPaneHeight(currentHeight - 24);
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      applyProgressPaneHeight(minimumProgressPaneHeight);
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      applyProgressPaneHeight(Number.MAX_SAFE_INTEGER);
+    }
+  }
 
   function restoreWidgetCat(): void {
     setIsThrowing(false);
@@ -126,6 +217,31 @@ function App(): React.ReactElement {
       throwTimerRef.current = undefined;
     }
   }
+
+  useEffect(() => {
+    if (progressPaneHeight === null || inProgressTodos.length === 0) {
+      return undefined;
+    }
+
+    const syncProgressPaneHeight = (): void => {
+      setProgressPaneHeight((currentHeight) => {
+        if (currentHeight === null) {
+          return currentHeight;
+        }
+
+        const nextHeight = clampProgressPaneHeight(currentHeight);
+        if (nextHeight !== currentHeight) {
+          window.localStorage.setItem(progressPaneStorageKey, String(nextHeight));
+        }
+
+        return nextHeight;
+      });
+    };
+
+    syncProgressPaneHeight();
+    window.addEventListener("resize", syncProgressPaneHeight);
+    return () => window.removeEventListener("resize", syncProgressPaneHeight);
+  }, [clampProgressPaneHeight, inProgressTodos.length, progressPaneHeight]);
 
   useEffect(() => {
     void window.todoApi.load().then((loaded) => {
@@ -318,7 +434,7 @@ function App(): React.ReactElement {
         </div>
       </section>
 
-      <section className="todo-board" aria-label="Todo 목록">
+      <section ref={todoBoardRef} className={`todo-board ${isResizingProgress ? "resizing" : ""}`} aria-label="Todo 목록">
         <section className="waiting-pane" aria-label="대기 todo">
           <div className="todo-scroll">
             {waitingTodos.length === 0 && (
@@ -347,29 +463,48 @@ function App(): React.ReactElement {
         </section>
 
         {inProgressTodos.length > 0 && (
-          <section className="progress-pane" aria-label="진행중 todo">
-            <div className="progress-heading">
-              <span>진행중</span>
-              <small>{inProgressTodos.length}개</small>
+          <>
+            <div
+              className="progress-resizer"
+              role="separator"
+              aria-label="대기 todo와 진행중 영역 높이 조절"
+              aria-orientation="horizontal"
+              aria-valuemin={minimumProgressPaneHeight}
+              aria-valuenow={progressPaneHeight ?? undefined}
+              tabIndex={0}
+              onKeyDown={adjustProgressPaneHeight}
+              onPointerDown={beginProgressResize}
+            >
+              <span />
             </div>
-            <div className="progress-scroll">
-              {inProgressTodos.map((todo) => (
-                <TodoBlock
-                  key={todo.id}
-                  todo={todo}
-                  editing={editId === todo.id}
-                  editDraft={editDraft}
-                  setEditDraft={setEditDraft}
-                  onEdit={() => startEdit(todo)}
-                  onSave={() => void saveEdit(todo)}
-                  onCancel={() => setEditId(null)}
-                  onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
-                  onProgressToggle={() => void updateTodo(todo.id, { status: "todo" })}
-                  onDelete={() => void deleteTodo(todo.id)}
-                />
-              ))}
-            </div>
-          </section>
+            <section
+              className={`progress-pane ${progressPaneHeight !== null ? "is-resized" : ""}`}
+              style={progressPaneHeight !== null ? { height: `${progressPaneHeight}px` } : undefined}
+              aria-label="진행중 todo"
+            >
+              <div className="progress-heading">
+                <span>진행중</span>
+                <small>{inProgressTodos.length}개</small>
+              </div>
+              <div className="progress-scroll">
+                {inProgressTodos.map((todo) => (
+                  <TodoBlock
+                    key={todo.id}
+                    todo={todo}
+                    editing={editId === todo.id}
+                    editDraft={editDraft}
+                    setEditDraft={setEditDraft}
+                    onEdit={() => startEdit(todo)}
+                    onSave={() => void saveEdit(todo)}
+                    onCancel={() => setEditId(null)}
+                    onToggle={() => void updateTodo(todo.id, { completed: !todo.completed })}
+                    onProgressToggle={() => void updateTodo(todo.id, { status: "todo" })}
+                    onDelete={() => void deleteTodo(todo.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </section>
 
