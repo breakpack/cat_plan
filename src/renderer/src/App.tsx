@@ -69,8 +69,8 @@ function toReadableDate(iso: string): string {
   }).format(new Date(iso));
 }
 
-function formatRemaining(dueAt: string): string {
-  const diff = new Date(dueAt).getTime() - Date.now();
+function formatRemaining(dueAt: string, now: number): string {
+  const diff = new Date(dueAt).getTime() - now;
   const absMinutes = Math.max(1, Math.round(Math.abs(diff) / 60000));
 
   if (diff < 0) {
@@ -125,6 +125,7 @@ function App(): React.ReactElement {
   const [catAssets, setCatAssets] = useState<CatAssets>(fallbackCatAssets);
   const [progressPaneHeight, setProgressPaneHeight] = useState<number | null>(readStoredProgressPaneHeight);
   const [isResizingProgress, setIsResizingProgress] = useState(false);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   const sortedTodos = useMemo(() => sortTodos(state.todos), [state.todos]);
   const activeTodos = sortedTodos.filter((todo) => !todo.completed);
@@ -217,6 +218,20 @@ function App(): React.ReactElement {
       throwTimerRef.current = undefined;
     }
   }
+
+  useEffect(() => {
+    const syncTime = (): void => setCurrentTime(Date.now());
+    const timer = window.setInterval(syncTime, 15_000);
+
+    window.addEventListener("focus", syncTime);
+    document.addEventListener("visibilitychange", syncTime);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", syncTime);
+      document.removeEventListener("visibilitychange", syncTime);
+    };
+  }, []);
 
   useEffect(() => {
     if (progressPaneHeight === null || inProgressTodos.length === 0) {
@@ -448,6 +463,7 @@ function App(): React.ReactElement {
               <TodoBlock
                 key={todo.id}
                 todo={todo}
+                now={currentTime}
                 editing={editId === todo.id}
                 editDraft={editDraft}
                 setEditDraft={setEditDraft}
@@ -491,6 +507,7 @@ function App(): React.ReactElement {
                   <TodoBlock
                     key={todo.id}
                     todo={todo}
+                    now={currentTime}
                     editing={editId === todo.id}
                     editDraft={editDraft}
                     setEditDraft={setEditDraft}
@@ -637,6 +654,7 @@ function App(): React.ReactElement {
                   <TodoBlock
                     key={todo.id}
                     todo={todo}
+                    now={currentTime}
                     editing={editId === todo.id}
                     editDraft={editDraft}
                     setEditDraft={setEditDraft}
@@ -658,6 +676,7 @@ function App(): React.ReactElement {
 
 interface TodoBlockProps {
   todo: Todo;
+  now: number;
   editing: boolean;
   editDraft: Draft;
   setEditDraft: React.Dispatch<React.SetStateAction<Draft>>;
@@ -671,6 +690,7 @@ interface TodoBlockProps {
 
 function TodoBlock({
   todo,
+  now,
   editing,
   editDraft,
   setEditDraft,
@@ -681,7 +701,7 @@ function TodoBlock({
   onProgressToggle,
   onDelete
 }: TodoBlockProps): React.ReactElement {
-  const overdue = !todo.completed && new Date(todo.dueAt).getTime() < Date.now();
+  const overdue = !todo.completed && new Date(todo.dueAt).getTime() < now;
   const inProgress = todo.status === "inProgress";
 
   return (
@@ -717,7 +737,7 @@ function TodoBlock({
             <div className="todo-meta">
               <Clock size={14} />
               <span>{toReadableDate(todo.dueAt)}</span>
-              <small>{formatRemaining(todo.dueAt)}</small>
+              <small>{formatRemaining(todo.dueAt, now)}</small>
             </div>
             {todo.memo && <p className="todo-memo">{todo.memo}</p>}
           </>
